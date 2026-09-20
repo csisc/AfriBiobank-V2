@@ -1,0 +1,30 @@
+# Checks the synthetic RDF dataset. Runs on pull requests and on changes to data/ or tools/.
+# Kept separate from deployment on purpose: a data-check problem should never stop the site from publishing.
+name: Validate dataset
+
+on:
+  pull_request:
+  push:
+    paths: ["data/**", "tools/**", ".github/workflows/validate-data.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validators
+        run: pip install -r tools/requirements.txt
+      - name: Dataset parses and conforms to the SHACL shapes
+        run: python tools/validate.py data/afribiobank-demo.trig
+      - name: Generator output matches the committed file (informational)
+        continue-on-error: true
+        run: |
+          python tools/generate_data.py --out /tmp/fresh.trig
+          diff -q /tmp/fresh.trig data/afribiobank-demo.trig
