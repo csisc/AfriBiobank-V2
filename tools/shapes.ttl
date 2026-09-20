@@ -1,0 +1,46 @@
+# SHACL shapes from AfriBiobank Data Model v2.0, Section 10 (transcribed to valid Turtle).
+# Two deliberate deviations from the document, both flagged in the project report:
+#   1. ImagingFindingShape targets observations that have fhir:derivedFrom (image findings) instead of
+#      *every* fhir:Observation, otherwise laboratory observations are validated as imaging findings.
+#   2. LabObservationShape is added, since the document defines no shape for lab results.
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+@prefix afri: <https://afribiobank.org/ontology/core#> .
+@prefix site: <https://afribiobank.org/ontology/site#> .
+@prefix ab: <https://afribiobank.org/shapes#> .
+
+ab:PatientShape a sh:NodeShape ; sh:targetClass fhir:Patient ;
+  sh:property [ sh:path fhir:identifier ; sh:minCount 1 ; sh:message "Patient must have at least one identifier." ] ;
+  sh:property [ sh:path afri:enrolledAt ; sh:minCount 1 ; sh:class site:BiobankSite ; sh:message "Patient must link to a contributing site." ] .
+
+ab:EncounterShape a sh:NodeShape ; sh:targetClass fhir:Encounter ;
+  sh:property [ sh:path fhir:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class fhir:Patient ] ;
+  sh:property [ sh:path fhir:period ; sh:minCount 1 ] ;
+  sh:property [ sh:path fhir:class ; sh:minCount 1 ] ;
+  sh:property [ sh:path fhir:serviceProvider ; sh:minCount 1 ; sh:class site:BiobankSite ] .
+
+ab:ImagingStudyShape a sh:NodeShape ; sh:targetClass fhir:ImagingStudy ;
+  sh:property [ sh:path fhir:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class fhir:Patient ] ;
+  sh:property [ sh:path fhir:modality ; sh:minCount 1 ] ;
+  sh:property [ sh:path afri:performedAt ; sh:minCount 1 ; sh:class site:BiobankSite ] .
+
+ab:MediaShape a sh:NodeShape ; sh:targetClass fhir:Media ;
+  sh:property [ sh:path fhir:basedOn ; sh:minCount 1 ; sh:class fhir:ImagingStudy ] ;
+  sh:property [ sh:path afri:imageQualityCategory ; sh:minCount 1 ] ;
+  sh:property [ sh:path fhir:content ; sh:minCount 1 ] .
+
+ab:ImagingFindingShape a sh:NodeShape ; sh:targetSubjectsOf fhir:derivedFrom ;
+  sh:property [ sh:path fhir:code ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path fhir:subject ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path fhir:status ; sh:minCount 1 ] ;
+  sh:xone ( [ sh:property [ sh:path fhir:valueBoolean ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path fhir:valueCodeableConcept ; sh:minCount 1 ] ]
+            [ sh:property [ sh:path fhir:valueQuantity ; sh:minCount 1 ] ] ) ;
+  sh:property [ sh:path afri:observationConfidence ; sh:datatype xsd:decimal ; sh:minInclusive 0.0 ; sh:maxInclusive 1.0 ] .
+
+ab:LabObservationShape a sh:NodeShape ; sh:targetSubjectsOf afri:relatedImagingStudy ;
+  sh:property [ sh:path fhir:code ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path fhir:encounter ; sh:minCount 1 ] ;
+  sh:property [ sh:path fhir:valueQuantity ; sh:minCount 1 ] ;
+  sh:property [ sh:path fhir:interpretation ; sh:minCount 1 ] .
